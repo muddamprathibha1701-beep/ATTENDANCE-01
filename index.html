@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎓 Advanced Classroom Attendance System Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection@0.0.3/dist/face-landmarks-detection.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            --danger: linear-gradient(135deg, #f44336 0%, #da190b 100%);
+            --warning: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+            --dark: #2c3e50;
+            --light: #ecf0f1;
+            --shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--primary);
+            min-height: 100vh;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        /* Login Screen */
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .login-card {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(20px);
+            padding: 3rem;
+            border-radius: 25px;
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 450px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-header h1 {
+            background: var(--primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .role-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-radius: 50px;
+            padding: 0.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .role-tab {
+            flex: 1;
+            padding: 1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .role-tab.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        input {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #fff;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102,126,234,0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 1.25rem;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 0.5rem;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        /* Main App */
+        .app-container {
+            display: none;
+            min-height: 100vh;
+        }
+
+        .app-header {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(20px);
+            padding: 1.5rem 2rem;
+            border-radius: 0 0 25px 25px;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .logout-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem 2rem;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-tab {
+            padding: 1rem 2rem;
+            background: rgba(255,255,255,0.7);
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            border: 2px solid transparent;
+        }
+
+        .nav-tab.active {
+            background: var(--primary);
+            color: white;
+            border-color: rgba(255,255,255,0.5);
+            transform: translateY(-2px);
+        }
+
+        .tab-panel {
+            display: none;
+            animation: slideIn 0.5s ease;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-top: 4px solid;
+        }
+
+        .stat-primary { border-top-color: #667eea; }
+        .stat-success { border-top-color: #4CAF50; }
+        .stat-warning { border-top-color: #ff9800; }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th {
+            background: var(--primary);
+            color: white;
+            padding: 1.25rem 1rem;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .badge {
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .badge-present { background: #d4edda; color: #155724; }
+        .badge-absent { background: #f8d7da; color: #721c24; }
+        .badge-late { background: #fff3cd; color: #856404; }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 640px;
+            height: 480px;
+            margin: 2rem auto;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            background: #000;
+        }
+
+        #videoCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-top: 2rem;
+        }
+
+        .notification {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            padding: 1.5rem 2rem;
+            border-radius: 15px;
+            color: white;
+            font-weight: 600;
+            transform: translateX(400px);
+            transition: transform 0.4s ease;
+            z-index: 10000;
+            box-shadow: var(--shadow);
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        @media (max-width: 768px) {
+            .login-card { padding: 2rem 1.5rem; }
+            .main-content { padding: 0 1rem 1rem; }
+            .grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>🎓 Attendance Pro</h1>
+                <p>Advanced Classroom Management System</p>
+            </div>
+            
+            <div class="role-tabs">
+                <div class="role-tab active" data-role="teacher">👨‍🏫 Teacher</div>
+                <div class="role-tab" data-role="student">👨‍🎓 Student</div>
+            </div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label id="loginLabel">Teacher ID:</label>
+                    <input type="text" id="username" placeholder="Enter ID/Email" required>
+                </div>
+                <div class="form-group">
+                    <label>Password:</label>
+                    <input type="password" id="password" placeholder="Enter Password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">🚀 Login</button>
+            </form>
+            
+            <div style="text-align: center; margin-top: 2rem; color: #666;">
+                <p>Demo Credentials:</p>
+                <p><strong>Teacher:</strong> teacher1 / 123456</p>
+                <p><strong>Student:</strong> stu001 / 123456</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="appScreen" class="app-container">
+        <div class="app-header">
+            <div>
+                <h2 id="appTitle">Dashboard</h2>
+                <span id="userRole"></span>
+            </div>
+            <div class="user-info">
+                <div class="user-avatar" id="userAvatar">T</div>
+                <div id="userName"></div>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <!-- Navigation -->
+            <div class="nav-tabs" id="teacherNav" style="display:none;">
+                <div class="nav-tab active" data-tab="dashboard">📊 Dashboard</div>
+                <div class="nav-tab" data-tab="attendance">📋 Take Attendance</div>
+                <div class="nav-tab" data-tab="camera">🎥 Face Recognition</div>
+                <div class="nav-tab" data-tab="students">👥 Manage Students</div>
+                <div class="nav-tab" data-tab="reports">📈 Reports</div>
+            </div>
+            
+            <div class="nav-tabs" id="studentNav" style="display:none;">
+                <div class="nav-tab active" data-tab="student-dashboard">🏠 My Dashboard</div>
+                <div class="nav-tab" data-tab="my-attendance">📋 My Attendance</div>
+            </div>
+
+            <!-- Dashboard -->
+            <div id="dashboard" class="tab-panel active">
+                <div class="stats-grid">
+                    <div class="stat-card stat-primary">
+                        <div class="stat-number" id="totalStudents">0</div>
+                        <div>Total Students</div>
+                    </div>
+                    <div class="stat-card stat-success">
+                        <div class="stat-number" id="todayPresent">0</div>
+                        <div>Present Today</div>
+                    </div>
+                    <div class="stat-card stat-warning">
+                        <div class="stat-number" id="attendanceRate">0%</div>
+                        <div>Avg Attendance</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Take Attendance -->
+            <div id="attendance" class="tab-panel">
+                <div class="card">
+                    <h3>📋 Take Attendance</h3>
+                    <div class="grid">
+                        <div>
+                            <label>Select Class:</label>
+                            <select id="attendanceClass" onchange="loadAttendanceStudents()"></select>
+                        </div>
+                        <div>
+                            <label>Session:</label>
+                            <input type="text" id="sessionName" placeholder="Morning/Evening">
+                        </div>
+                    </div>
+                    <div class="table-responsive" id="attendanceTable"></div>
+                    <div style="text-align:center; margin-top:2rem;">
+                        <button class="btn btn-success" onclick="markAllPresent()" id="markAllBtn">✅ Mark All Present</button>
+                        <button class="btn" onclick="exportSession()">📤 Export CSV</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Face Recognition -->
+            <div id="camera" class="tab-panel">
+                <div class="card">
+                    <h3>🎥 AI Face Recognition</h3>
+                    <select id="cameraClass" onchange="updateCameraClass()" style="margin-bottom:2rem;"></select>
+                    <div class="video-container">
+                        <video id="video" autoplay muted playsinline></video>
+                        <canvas id="videoCanvas"></canvas>
+                    </div>
+                    <div style="text-align:center; margin:2rem 0;">
+                        <button class="btn btn-primary" id="startRecognition">▶️ Start Recognition</button>
+                        <button class="btn btn-danger" id="stopRecognition" style="display:none;">⏹️ Stop</button>
+                    </div>
+                    <div id="recognitionInfo"></div>
+                </div>
+            </div>
+
+            <!-- Manage Students -->
+            <div id="students" class="tab-panel">
+                <div class="card">
+                    <h3>👥 Student Management</h3>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:2rem; margin-bottom:2rem;">
+                        <form id="addStudentForm">
+                            <h4>➕ Add Student</h4>
+                            <input type="text" id="newStudentId" placeholder="Student ID" required>
+                            <input type="text" id="newStudentName" placeholder="Full Name" required>
+                            <input type="text" id="newStudentClass" placeholder="Class" required>
+                            <input type="email" id="newStudentEmail" placeholder="Email">
+                            <input type="file" id="studentPhoto" accept="image/*">
+                            <button type="submit" class="btn btn-success">Add Student</button>
+                        </form>
+                        <div>
+                            <h4>🔍 Search Students</h4>
+                            <input type="text" id="searchStudents" placeholder="Search by name/ID..." oninput="filterStudents()">
+                            <div id="studentsList"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports -->
+            <div id="reports" class="tab-panel">
+                <div class="card">
+                    <h3>📈 Analytics & Reports</h3>
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1rem; margin-bottom:2rem;">
+                        <select id="reportClass"></select>
+                        <input type="date" id="reportFrom">
+                        <input type="date" id="reportTo">
+                        <button class="btn" onclick="generateReport()">Generate Report</button>
+                    </div>
+                    <div class="table-responsive" id="reportTable"></div>
+                    <div class="chart-container">
+                        <canvas id="attendanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Student Dashboard -->
+            <div id="student-dashboard" class="tab-panel">
+                <div class="card">
+                    <h3>🏠 My Dashboard</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card stat-success">
+                            <div class="stat-number" id="studentTodayStatus">Absent</div>
+                            <div>Today Status</div>
+                        </div>
+                        <div class="stat-card stat-primary">
+                            <div class="stat-number" id="studentTotalPresent">0</div>
+                            <div>Total Present</div>
+                        </div>
+                        <div class="stat-card stat-warning">
+                            <div class="stat-number" id="studentAttendanceRate">0%</div>
+                            <div>Attendance %</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Student Attendance -->
+            <div id="my-attendance" class="tab-panel">
+                <div class="card">
+                    <h3>📋 My Attendance History</h3>
+                    <div class="table-responsive" id="studentAttendanceTable"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === GLOBAL STATE ===
+        let currentUser = null;
+        let students = JSON.parse(localStorage.getItem('students')) || [];
+        let attendanceRecords = JSON.parse(localStorage.getItem('attendance')) || [];
+        let faceModel = null;
+        let videoStream = null;
+        let isRecognizing = false;
+        let chart = null;
+
+        // === SAMPLE DATA ===
+        if (students.length === 0) {
+            students = [
+                {id:1, studentId:'STU001', name:'John Doe', email:'john@school.com', className:'Class 10A', photo:null},
+                {id:2, studentId:'STU002', name:'Jane Smith', email:'jane@school.com', className:'Class 10A', photo:null},
+                {id:3, studentId:'STU003', name:'Mike Johnson', email:'mike@school.com', className:'Class 10B', photo:null}
+            ];
+            localStorage.setItem('students', JSON.stringify(students));
+        }
+
+        // === LOGIN SYSTEM ===
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const role = document.querySelector('.role-tab.active').dataset.role;
+
+            // Demo authentication
+            const credentials = {
+                teacher: [
+                    {id: 'teacher1', name: 'Mr. Smith', password: '123456'},
+                    {id: 'teacher2', name: 'Ms. Johnson', password: '123456'}
+                ],
+                student: [
+                    {id: 'stu001', name: 'John Doe', className: 'Class 10A', password: '123456'},
+                    {id: 'stu002', name: 'Jane Smith', className: 'Class 10A', password: '123456'}
+                ]
+            };
+
+            const user = credentials[role].find(u => u.id === username && u.password === password);
+            
+            if (user) {
+                currentUser = { ...user, role };
+                loginSuccess();
+            } else {
+                showNotification('❌ Invalid credentials!', 'error');
+            }
+        });
+
+        // Role tab switching
+        document.querySelectorAll('.role-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                
+                const role = this.dataset.role;
+                document.getElementById('loginLabel').textContent = role === 'teacher' ? 'Teacher ID:' : 'Student ID:';
+            });
+        });
+
+        function loginSuccess() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('appScreen').style.display = 'block';
+            
+            document.getElementById('userRole').textContent = currentUser.role.toUpperCase();
+            document.getElementById('userName').textContent = currentUser.name;
+            document.getElementById('userAvatar').textContent = currentUser.name.charAt(0);
+            document.getElementById('appTitle').textContent = `${currentUser.role === 'teacher' ? 'Teacher' : 'Student'} Dashboard`;
+            
+            if (currentUser.role === 'teacher') {
+                document.getElementById('teacherNav').style.display = 'flex';
+                document.getElementById('studentNav').style.display = 'none';
+                initTeacherDashboard();
+            } else {
+                document.getElementById('teacherNav').style.display = 'none';
+                document.getElementById('studentNav').style.display = 'flex';
+                initStudentDashboard();
+            }
+            
+            showNotification(`✅ Welcome ${currentUser.name}!`, 'success');
+        }
+
+        function logout() {
+            currentUser = null;
+            videoStream?.getTracks().forEach(track => track.stop());
+            document.getElementById('appScreen').style.display = 'none';
+            document.getElementById('loginScreen').style.display = 'flex';
+            document.getElementById('loginForm').reset();
+            showNotification('👋 Logged out successfully', 'success');
+        }
+
+        // === TEACHER FUNCTIONS ===
+        function initTeacherDashboard() {
+            updateClassDropdowns();
+            updateStats();
+            setupTabNavigation();
+        }
+
+        function setupTabNavigation() {
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const targetTab = this.dataset.tab;
+                    
+                    // Update active tab
+                    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                    this.classList.add('active');
+                    document.getElementById(targetTab).classList.add('active');
+                    
+                    // Load tab content
+                    if (targetTab === 'students') loadStudents();
+                    if (targetTab === 'reports') generateReport();
+                });
+            });
+        }
+
+        function updateClassDropdowns() {
+            const classes = [...new Set(students.map(s => s.className))];
+            ['attendanceClass', 'cameraClass', 'reportClass'].forEach(id => {
+                const select = document.getElementById(id);
+                select.innerHTML = '<option value="">Select Class</option>';
+                classes.forEach(cls => {
+                    const option = new Option(cls, cls);
+                    select.add(option);
+                });
+            });
+        }
+
+        async function loadAttendanceStudents() {
+            const className = document.getElementById('attendanceClass').value;
+            if (!className) return;
+
+            const classStudents = students.filter(s => s.className === className);
+            renderAttendanceTable(classStudents);
+        }
+
+        function renderAttendanceTable(studentsList) {
+            const today = new Date().toDateString();
+            const table = document.getElementById('attendanceTable');
+            
+            table.innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Status</th>
+                            <th>Time</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${studentsList.map(student => {
+                            const record = attendanceRecords.find(r => 
+                                r.studentId === student.studentId && 
+                                new Date(r.date).toDateString() === today
+                            );
+                            return `
+                                <tr>
+                                    <td>${student.studentId}</td>
+                                    <td>${student.name}</td>
+                                    <td><span class="badge ${record ? 'badge-present' : 'badge-absent'}">${record ? 'Present' : 'Absent'}</span></td>
+                                    <td>${record ? new Date(record.timeIn).toLocaleTimeString() : '-'}</td>
+                                    <td>
+                                        ${!record ? 
+                                            `<button class="btn btn-success" onclick="markStudentPresent('${student.studentId}')">Present</button>` : 
+                                            `<span style="color:#4CAF50;">✓ Marked</span>`
+                                        }
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function markStudentPresent(studentId) {
+            const record = {
+                id: Date.now(),
+                studentId,
+                className: document.getElementById('attendanceClass').value,
+                teacherId: currentUser.id,
+                date: new Date(),
+                timeIn: new Date(),
+                status: 'Present',
+                method: 'Manual'
+            };
+            attendanceRecords.push(record);
+            localStorage.setItem('attendance', JSON.stringify(attendanceRecords));
+            loadAttendanceStudents();
+            updateStats();
+            showNotification('✅ Student marked present!', 'success');
+        }
+
+        function markAllPresent() {
+            const className = document.getElementById('attendanceClass').value;
+            const classStudents = students.filter(s => s.className === className);
+            const today = new Date().toDateString();
+
+            classStudents.forEach(student => {
+                if (!attendanceRecords.find(r => 
+                    r.studentId === student.studentId && 
+                    new Date(r.date).toDateString() === today
+                )) {
+                    markStudentPresent(student.studentId);
+                }
+            });
+        }
+
+        function exportSession() {
+            const className = document.getElementById('attendanceClass').value;
+            const today = new Date().toDateString();
+            const sessionData = attendanceRecords.filter(r => 
+                r.className === className && 
+                new Date(r.date).toDateString() === today
+            );
+
+            const csv = [
+                ['Student ID', 'Name', 'Time', 'Status', 'Teacher'],
+                ...sessionData.map(r => {
+                    const student = students.find(s => s.studentId === r.studentId);
+                    return [r.studentId, student?.name || 'Unknown', new Date(r.timeIn).toLocaleTimeString(), r.status, currentUser.name];
+                })
+            ].map(row => row.join(',')).join('\n');
+
+            downloadCSV(csv, `attendance_${className}_${new Date().toISOString().split('T')[0]}.csv`);
+        }
+
+        // === FACE RECOGNITION ===
+        document.getElementById('startRecognition').onclick = startFaceRecognition;
+        document.getElementById('stopRecognition').onclick = stopFaceRecognition;
+
+        async function startFaceRecognition() {
+            try {
+                await tf.ready();
+                if (!faceModel) {
+                    faceModel = await faceLandmarksDetection.load(
+                        faceLandmarksDetection.SupportedPackages.mediapipeFacemesh
+                    );
+                }
+
+                const video = document.getElementById('video');
+                videoStream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 480, facingMode: 'user' }
+                });
+                video.srcObject = videoStream;
+
+                document.getElementById('startRecognition').style.display = 'none';
+                document.getElementById('stopRecognition').style.display = 'inline-block';
+                isRecognizing = true;
+
+                detectFaces();
+                showNotification('🎥 Face recognition started!', 'success');
+            } catch (err) {
+                showNotification('❌ Camera access denied', 'error');
+            }
+        }
+
+        function stopFaceRecognition() {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+            }
+            isRecognizing = false;
+            document.getElementById('startRecognition').style.display = 'inline-block';
+            document.getElementById('stopRecognition').style.display = 'none';
+            document.getElementById('recognitionInfo').innerHTML = '';
+        }
+
+        async function detectFaces() {
+            if (!isRecognizing || !faceModel) return;
+
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('videoCanvas');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            const predictions = await faceModel.estimateFaces(video);
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            predictions.forEach((prediction, index) => {
+                // Draw face box
+                ctx.strokeStyle = '#00ff88';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(
+                    prediction.boundingBox.topLeft[0],
+                    prediction.boundingBox.topLeft[1],
+                    prediction.boundingBox.bottomRight[0] - prediction.boundingBox.topLeft[0],
+                    prediction.boundingBox.bottomRight[1] - prediction.boundingBox.topLeft[1]
+                );
+
+                // Simulate recognition
+                const className = document.getElementById('cameraClass').value;
+                if (className) {
+                    const mockStudent = students.find(s => s.className === className);
+                    if (mockStudent) {
+                        markStudentPresent(mockStudent.studentId);
+                        document.getElementById('recognitionInfo').innerHTML = 
+                            `<div style="color:#00ff88; font-size:1.2rem;">✅ ${mockStudent.name} recognized!</div>`;
+                    }
+                }
+            });
+
+            document.getElementById('recognitionInfo').innerHTML += 
+                `<div>👀 Detected: ${predictions.length} face${predictions.length === 1 ? '' : 's'}</div>`;
+
+            requestAnimationFrame(detectFaces);
+        }
+
+        function updateCameraClass() {
+            const className = document.getElementById('cameraClass').value;
+            document.getElementById('recognitionInfo').innerHTML = 
+                `<div>📚 Camera set to: <strong>${className}</strong></div>`;
+        }
+
+        // === STUDENT MANAGEMENT ===
+        document.getElementById('addStudentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const newStudent = {
+                id: Date.now(),
+                studentId: document.getElementById('newStudentId').value,
+                name: document.getElementById('newStudentName').value,
+                className: document.getElementById('newStudentClass').value,
+                email: document.getElementById('newStudentEmail').value
+            };
+            
+            students.push(newStudent);
+            localStorage.setItem('students', JSON.stringify(students));
+            updateClassDropdowns();
+            loadStudents();
+            this.reset();
+            showNotification('✅ Student added successfully!', 'success');
+        });
+
+        function loadStudents() {
+            const container = document.getElementById('studentsList');
+            const search = document.getElementById('searchStudents').value.toLowerCase();
+            
+            const filtered = students.filter(s => 
+                s.studentId.toLowerCase().includes(search) || 
+                s.name.toLowerCase().includes(search)
+            );
+            
+            container.innerHTML = filtered.map(s => `
+                <div style="padding:1rem; border:1px solid #eee; border-radius:10px; margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <strong>${s.studentId}</strong> - ${s.name}<br>
+                        <small>${s.className} ${s.email ? `| ${s.email}` : ''}</small>
+                    </div>
+                    <button class="btn btn-danger" onclick="deleteStudent(${s.id})">Delete</button>
+                </div>
+            `).join('');
+        }
+
+        function deleteStudent(id) {
+            if (confirm('Delete this student?')) {
+                students = students.filter(s => s.id !== id);
+                localStorage.setItem('students', JSON.stringify(students));
+                loadStudents();
+                updateClassDropdowns();
+            }
+        }
+
+        function filterStudents() {
+            loadStudents();
+        }
+
+        // === REPORTS ===
+        function generateReport() {
+            const className = document.getElementById('reportClass').value;
+            const fromDate = document.getElementById('reportFrom').value;
+            const toDate = document.getElementById('reportTo').value;
+
+            let filteredRecords = attendanceRecords;
+            if (className) filteredRecords = filteredRecords.filter(r => r.className === className);
+            if (fromDate || toDate) {
+                const from = fromDate ? new Date(fromDate) : new Date(0);
+                const to = toDate ? new Date(toDate) : new Date();
+                filteredRecords = filteredRecords.filter(r => new Date(r.date) >= from && new Date(r.date) <= to);
+            }
+
+            const report = {};
+            filteredRecords.forEach(r => {
+                if (!report[r.studentId]) {
+                    report[r.studentId] = {present: 0, total: 0, name: ''};
+                }
+                const student = students.find(s => s.studentId === r.studentId);
+                report[r.studentId].name = student?.name || 'Unknown';
+                report[r.studentId].present++;
+                report[r.studentId].total++;
+            });
+
+            const table = document.getElementById('reportTable');
+            table.innerHTML = `
+                <table>
+                    <thead>
+                        <tr><th>Student</th><th>Present</th><th>Total</th><th>Rate</th></tr>
+                    </thead>
+                    <tbody>
+                        ${Object.values(report).map(data => `
+                            <tr>
+                                <td>${data.name}</td>
+                                <td>${data.present}</td>
+                                <td>${data.total}</td>
+                                <td>${Math.round((data.present/data.total)*100) || 0}%</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            renderChart(Object.values(report));
+        }
+
+        function renderChart(reportData) {
+            const ctx = document.getElementById('attendanceChart').getContext('2d');
+            if (chart) chart.destroy();
+
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: reportData.map(d => d.name.slice(0,10)),
+                    datasets: [{
+                        label: 'Attendance Rate',
+                        data: reportData.map(d => (d.present/d.total)*100),
+                        backgroundColor: 'rgba(102, 126, 234, 0.7)',
+                        borderColor: '#667eea',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { beginAtZero: true, max: 100 }
+                    }
+                }
+            });
+        }
+
+        // === STUDENT FUNCTIONS ===
+        function initStudentDashboard() {
+            updateStudentStats();
+            loadStudentAttendance();
+        }
+
+        function updateStudentStats() {
+            const studentId = currentUser.id;
+            const today = new Date().toDateString();
+            const studentRecords = attendanceRecords.filter(r => r.studentId === studentId);
+            const todayRecord = studentRecords.find(r => new Date(r.date).toDateString() === today);
+
+            document.getElementById('studentTodayStatus').textContent = todayRecord ? 'Present' : 'Absent';
+            document.getElementById('studentTodayStatus').className = todayRecord ? 'stat-success' : 'stat-danger';
+            document.getElementById('studentTotalPresent').textContent = studentRecords.length;
+            document.getElementById('studentAttendanceRate').textContent = studentRecords.length ? '100%' : '0%';
+        }
+
+        function loadStudentAttendance() {
+            const studentId = currentUser.id;
+            const studentRecords = attendanceRecords
+                .filter(r => r.studentId === studentId)
+                .sort((a,b) => new Date(b.date) - new Date(a.date))
+                .slice(0, 20);
+
+            const table = document.getElementById('studentAttendanceTable');
+            table.innerHTML = `
+                <table>
+                    <thead>
+                        <tr><th>Date</th><th>Time</th><th>Class</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                        ${studentRecords.map(r => `
+                            <tr>
+                                <td>${new Date(r.date).toLocaleDateString()}</td>
+                                <td>${new Date(r.timeIn).toLocaleTimeString()}</td>
+                                <td>${r.className}</td>
+                                <td><span class="badge badge-present">${r.status}</span></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // === UTILITY FUNCTIONS ===
+        function updateStats() {
+            const today = new Date().toDateString();
+            const todayRecords = attendanceRecords.filter(r => new Date(r.date).toDateString() === today);
+            
+            document.getElementById('totalStudents').textContent = students.length;
+            document.getElementById('todayPresent').textContent = todayRecords.length;
+            document.getElementById('attendanceRate').textContent = 
+                students.length ? Math.round((todayRecords.length / students.length) * 100) + '%' : '0%';
+        }
+
+        function downloadCSV(csv, filename) {
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => notification.classList.add('show'), 100);
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => document.body.removeChild(notification), 400);
+            }, 4000);
+        }
+
+        // Auto-save
+        setInterval(() => {
+            localStorage.setItem('students', JSON.stringify(students));
+            localStorage.setItem('attendance', JSON.stringify(attendanceRecords));
+        }, 30000);
+
+        console.log('🚀 Advanced Attendance System Pro Loaded!');
+    </script>
+</body>
+</html>
